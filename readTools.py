@@ -1,5 +1,19 @@
+'''
+readTools v2.1
+Written by Jeang Jenq Loh
+Latest update: 1 April 2019
+
+A compilation of scripts that modify multiple read nodes at once
+# Select all read nodes
+# Set localization settings
+# Set frame range
+# Set missing frames settings
+# Refresh selected read nodes
+'''
 import nuke
 import nukescripts
+import os
+import re
 
 def newUserKnob(knob, value):
     knob.setValue(value)
@@ -61,9 +75,9 @@ def setFrameRange():
     f.lastFrame = newUserKnob(nuke.Int_Knob('last_frame', '', 100), int(nuke.root().lastFrame()))
     f.after = nuke.Enumeration_Knob('after', '', ['hold', 'loop', 'bounce', 'black'])
 
-    #Set nodes selection and after as end line
-    for s in (f.nodesSelection, f.after):
-        s.setFlag(0x2000)
+    #Clear flags on firstframe, before, lastframe and after so that it's on the same line
+    for s in (f.firstFrame, f.before, f.lastFrame, f.after):
+        s.clearFlag(nuke.STARTLINE)
     for k in (f.nodesSelection, f.divText, f.firstFrame, f.before, f.lastFrame, f.after):
         f.addKnob(k)
 
@@ -128,4 +142,45 @@ def setError():
             except NameError:
                 pass
 
+def refreshReads():
+    for node in nuke.selectedNodes():
+        node['reload'].execute()
 
+def deleteFiles():
+    #gather a list of all selected read nodes and filter out non-read nodes
+    all = nuke.selectedNodes()
+    for node in all:
+        if not node.Class() == 'Read':
+            all.remove(node)
+    files = []
+
+    #get a list of files to be deleted
+    for n in all:
+        #get file path while repalcing the hashes with %0#d
+        path = nukescripts.replaceHashes(nuke.filename(n))
+        padd = re.search(r'%.*d', path)
+        framerange = range(n['first'].value(), n['last'].value() + 1)
+        for index in framerange:
+            if padd:
+                fra = (padd.group(0)) % index
+                name = str(re.sub(r'%.*d', str(fra), path))
+            elif not padd:
+                name = path
+            if name not in files:
+                files.append(name)
+
+    #list of node names about to be deleted
+    nodesToDelete = []
+    for na in all:
+        nodesToDelete.append(na['name'].value())
+
+    #Confirm files deletion
+    if nodesToDelete:
+        if nuke.ask('About to delete files from: ' + '\n' + str(nodesToDelete) + '\n' + "Confirm?"):
+            for e in files:
+                try:
+                    os.remove(e)
+                except:
+                    pass
+        else:
+            pass
