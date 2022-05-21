@@ -1,7 +1,7 @@
 '''
-readTools v2.1
+readTools v2.2
 Written by Jeang Jenq Loh
-Latest update: 1 April 2019
+Latest update: 22 May 2022
 
 A compilation of scripts that modify multiple read nodes at once
 # Select all read nodes
@@ -12,8 +12,13 @@ A compilation of scripts that modify multiple read nodes at once
 '''
 import nuke
 import nukescripts
+from nukescripts.searchreplace import __NodeHasKnobWithName as NodeHasKnobWithName
 import os
 import re
+if nuke.NUKE_VERSION_MAJOR < 11:
+    from PySide import QtCore, QtGui, QtGui as QtWidgets
+else:
+    from PySide2 import QtGui, QtCore, QtWidgets
 
 def newUserKnob(knob, value):
     knob.setValue(value)
@@ -30,27 +35,57 @@ def selectRead():
     for i in allReads():
         i.knob('selected').setValue('True')
 
-def setLocalize():
-    p = nukescripts.PythonPanel('Change localization')
-    p.nodesSelection = nuke.Enumeration_Knob('nodesSel', 'Nodes selections', ['All nodes', 'Selected nodes only', 'Exclude selected nodes'])
-    p.checkboxKnob = nuke.Boolean_Knob('readOnly', 'Read nodes only', '1')
-    p.readText = nuke.Text_Knob('text', '', 'ReadGeo for instance also has localizationPolicy')
-    p.divText = nuke.Text_Knob('divText', '')
-    p.localizationKnob = newUserKnob(nuke.Enumeration_Knob('localizationPol', 'Set localization policy', ['on', 'from auto-localize path', 'on demand', 'off']), 1)
-    p.textKnob = nuke.Text_Knob('text', '', '"on demand" only available since nuke11.1')
-    for k in (p.nodesSelection, p.checkboxKnob, p.readText, p.divText, p.localizationKnob, p.textKnob):
-        k.setFlag(0x1000)
-        p.addKnob(k)
 
-    #show dialog
-    if p.showModalDialog():
-        if p.nodesSelection.value() == 'All nodes':
+class setLocalize_panel(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(setLocalize_panel, self).__init__(parent)
+
+        nodeSelectionLabel = QtWidgets.QLabel("Nodes selection")
+        self.nodeSelection = QtWidgets.QComboBox()
+        selections = ['All nodes', 'Selected nodes', 'Exclude selected']
+        self.nodeSelection.addItems(selections)
+
+        self.readNodesOnlyCheck = QtWidgets.QCheckBox("Read nodes only")
+        self.readNodesOnlyCheck.setChecked(True)
+        self.readNodesOnlyCheck.setToolTip("Untick checkbox if you want to include ReadGeo!")
+
+        
+        policyLabel = QtWidgets.QLabel("Set localization policy")
+        policies = ['on', 'from auto-localize path', 'on demand', 'off']
+        self.policyDropdown = QtWidgets.QComboBox()
+        self.policyDropdown.addItems(policies)
+        if nuke.NUKE_VERSION_MAJOR < 11:
+            self.policyDropdown.removeItem("on demand")
+        
+
+        self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.buttonBox.accepted.connect(self.clickedOk)
+        self.buttonBox.rejected.connect(self.clickedCancel)
+
+
+        masterLayout = QtWidgets.QGridLayout()
+        masterLayout.addWidget(nodeSelectionLabel, 0,0)
+        masterLayout.addWidget(self.nodeSelection, 0,1)
+        masterLayout.addWidget(self.readNodesOnlyCheck, 1,1)
+        masterLayout.addWidget(policyLabel, 3,0)
+        masterLayout.addWidget(self.policyDropdown, 3,1)
+        masterLayout.addWidget(self.buttonBox)
+        self.setLayout(masterLayout)
+        self.setWindowTitle("Set Localization Policy")
+
+    def clickedOk(self):
+        selection = self.nodeSelection.currentText()
+        readOnly = self.readNodesOnlyCheck.isChecked()
+        policy = self.policyDropdown.currentIndex()
+        if selection == 'All nodes':
             #all nodes with localization knob
-            Sel = [l for l in nuke.allNodes(recurseGroups=True) if nukescripts.searchreplace.__NodeHasKnobWithName(l, 'localizationPolicy')]
-        elif p.nodesSelection.value() == 'Selected nodes only':
+            Sel = [l for l in nuke.allNodes(recurseGroups=True) if NodeHasKnobWithName(l, 'localizationPolicy')]
+            # pass
+        elif self.nodeSelection.currentText() == 'Selected nodes only':
             Sel = nuke.selectedNodes()
         else:
-            Sel = [l for l in nuke.allNodes(recurseGroups=True) if nukescripts.searchreplace.__NodeHasKnobWithName(l, 'localizationPolicy')]
+            Sel = [l for l in nuke.allNodes(recurseGroups=True) if NodeHasKnobWithName(l, 'localizationPolicy')]
+            # pass
             for i in nuke.selectedNodes():
                 try:
                     Sel.remove(i)
@@ -58,13 +93,20 @@ def setLocalize():
                     pass
 
         for n in Sel:
-            if p.checkboxKnob.value():
+            if readOnly:
                 if n.Class() == 'Read':
-                    if not n['localizationPolicy'].setValue(int(p.localizationKnob.getValue())):
-                        n['localizationPolicy'].setValue(2)
+                    n['localizationPolicy'].setValue(policy)
             else:
-                if not n['localizationPolicy'].setValue(int(p.localizationKnob.getValue())):
-                    n['localizationPolicy'].setValue(2)
+                n['localizationPolicy'].setValue(policy)
+        self.close()
+        return True
+        
+    def clickedCancel(self):
+        self.close()
+
+def setLocalize():
+    setLocalize.setLocalizePanel = setLocalize_panel()
+    setLocalize.setLocalizePanel.show()
 
 def setFrameRange():
     f = nukescripts.PythonPanel('Set read nodes frame range')
