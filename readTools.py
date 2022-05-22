@@ -20,9 +20,6 @@ if nuke.NUKE_VERSION_MAJOR < 11:
 else:
     from PySide2 import QtGui, QtCore, QtWidgets
 
-def newUserKnob(knob, value):
-    knob.setValue(value)
-    return knob
 
 def allReads():
     readNodes = []
@@ -30,6 +27,7 @@ def allReads():
         if i.Class() == 'Read':
             readNodes.append(i)
     return readNodes
+
 
 def selectRead():
     for i in allReads():
@@ -48,7 +46,6 @@ class setLocalize_panel(QtWidgets.QDialog):
         self.readNodesOnlyCheck = QtWidgets.QCheckBox("Read nodes only")
         self.readNodesOnlyCheck.setChecked(True)
         self.readNodesOnlyCheck.setToolTip("Untick checkbox if you want to include ReadGeo!")
-
         
         policyLabel = QtWidgets.QLabel("Set localization policy")
         policies = ['on', 'from auto-localize path', 'on demand', 'off']
@@ -57,11 +54,9 @@ class setLocalize_panel(QtWidgets.QDialog):
         if nuke.NUKE_VERSION_MAJOR < 11:
             self.policyDropdown.removeItem("on demand")
         
-
         self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         self.buttonBox.accepted.connect(self.clickedOk)
         self.buttonBox.rejected.connect(self.clickedCancel)
-
 
         masterLayout = QtWidgets.QGridLayout()
         masterLayout.addWidget(nodeSelectionLabel, 0,0)
@@ -107,6 +102,7 @@ class setLocalize_panel(QtWidgets.QDialog):
 def setLocalize():
     setLocalize.setLocalizePanel = setLocalize_panel()
     setLocalize.setLocalizePanel.show()
+
 
 class setFrameRange_Panel(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -196,22 +192,43 @@ def setFrameRange():
     setFrameRange.setFrameRangePanel.show()
 
 
+class setError_Panel(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(setError_Panel, self).__init__(parent)
 
-def setError():
-    e = nukescripts.PythonPanel('Missing frames setting')
-    e.nodesSelection = nuke.Enumeration_Knob('nodesSel', 'Nodes selections', ['All read nodes', 'Selected nodes only', 'Exclude selected nodes'])
-    e.divText = nuke.Text_Knob('divText', '')
-    e.onError = nuke.Enumeration_Knob('onError', 'missing frames', ['error', 'black', 'checkerboard', 'nearest frame'])
-    e.reload = newUserKnob(nuke.Boolean_Knob('reload', 'Reload changed nodes', '0'), 0)
-    for k in (e.nodesSelection, e.divText, e.onError, e.reload):
-        k.setFlag(0x1000)
-        e.addKnob(k)
+        nodeSelectionLabel = QtWidgets.QLabel("Nodes selection")
+        self.nodeSelection = QtWidgets.QComboBox()
+        selections = ['All read nodes', 'Selected nodes only', 'Exclude selected nodes']
+        self.nodeSelection.addItems(selections)
 
-    #show dialog
-    if e.showModalDialog():
-        if e.nodesSelection.value() == 'All read nodes':
+        errorLabel = QtWidgets.QLabel("missing frames")
+        self.onError = QtWidgets.QComboBox()
+        errors = ['error', 'black', 'checkerboard', 'nearest frame']
+        self.onError.addItems(errors)
+        self.reloadCheck = QtWidgets.QCheckBox("Reload changed nodes")
+
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(self.clickedOk)
+        buttonBox.rejected.connect(self.clickedCancel)
+
+        masterLayout = QtWidgets.QGridLayout()
+        masterLayout.addWidget(nodeSelectionLabel, 0,0)
+        masterLayout.addWidget(self.nodeSelection, 0,1)
+        masterLayout.addWidget(errorLabel, 1,0)
+        masterLayout.addWidget(self.onError, 1,1)
+        masterLayout.addWidget(self.reloadCheck, 2,1)
+        masterLayout.addWidget(buttonBox, 3,1)
+        self.setLayout(masterLayout)
+        self.setWindowTitle("Missing frames settings")
+
+    def clickedOk(self):
+        nodeSelection = self.nodeSelection.currentText()
+        onError = self.onError.currentIndex()
+        reloadCheck = self.reloadCheck.isChecked()
+
+        if nodeSelection == 'All read nodes':
             Sel = allReads()
-        elif e.nodesSelection.value() == 'Selected nodes only':
+        elif nodeSelection == 'Selected nodes only':
             Sel = nuke.selectedNodes()
         else:
             Sel = allReads()
@@ -225,17 +242,28 @@ def setError():
 
         for r in Sel:
             try:
-                r['on_error'].setValue(int(e.onError.getValue()))
-                if e.reload.value():
+                r['on_error'].setValue(onError)
+                if reloadCheck:
                     r.knob('reload').execute()
             except ValueError:
                 nuke.message('No nodes selected!')
             except NameError:
                 pass
+        self.close()
+        return True
+    
+    def clickedCancel(self):
+        self.reject()
+
+def setError():
+    setError.setErrorPanel = setError_Panel()
+    setError.setErrorPanel.show()
+
 
 def refreshReads():
     for node in nuke.selectedNodes():
         node['reload'].execute()
+
 
 def deleteFiles():
     #gather a list of all selected read nodes and filter out non-read nodes
