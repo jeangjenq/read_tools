@@ -108,26 +108,64 @@ def setLocalize():
     setLocalize.setLocalizePanel = setLocalize_panel()
     setLocalize.setLocalizePanel.show()
 
-def setFrameRange():
-    f = nukescripts.PythonPanel('Set read nodes frame range')
-    f.nodesSelection = nuke.Enumeration_Knob('nodesSel', 'Nodes selections', ['All read nodes', 'Selected nodes only', 'Exclude selected nodes'])
-    f.divText = nuke.Text_Knob('divText', '')
-    f.firstFrame = newUserKnob(nuke.Int_Knob('first_frame', 'frame range', 1), int(nuke.root().firstFrame()))
-    f.before = nuke.Enumeration_Knob('before', '', ['hold', 'loop', 'bounce', 'black'])
-    f.lastFrame = newUserKnob(nuke.Int_Knob('last_frame', '', 100), int(nuke.root().lastFrame()))
-    f.after = nuke.Enumeration_Knob('after', '', ['hold', 'loop', 'bounce', 'black'])
+class setFrameRange_Panel(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(setFrameRange_Panel, self).__init__(parent)
 
-    #Clear flags on firstframe, before, lastframe and after so that it's on the same line
-    for s in (f.firstFrame, f.before, f.lastFrame, f.after):
-        s.clearFlag(nuke.STARTLINE)
-    for k in (f.nodesSelection, f.divText, f.firstFrame, f.before, f.lastFrame, f.after):
-        f.addKnob(k)
+        nodeSelectionLabel = QtWidgets.QLabel("Nodes selection")
+        self.nodeSelection = QtWidgets.QComboBox()
+        selections = ['All read nodes', 'Selected nodes only', 'Exclude selected nodes']
+        self.nodeSelection.addItems(selections)
 
-    #show dialog
-    if f.showModalDialog():
-        if f.nodesSelection.value() == 'All read nodes':
+        nodeSelectionWidget = QtWidgets.QWidget()
+        nodeSelectionLayout = QtWidgets.QHBoxLayout()
+        nodeSelectionLayout.addWidget(nodeSelectionLabel)
+        nodeSelectionLayout.addWidget(self.nodeSelection)
+        nodeSelectionWidget.setLayout(nodeSelectionLayout)
+
+        frameRangeLabel = QtWidgets.QLabel("frame range")
+        self.first_frame = QtWidgets.QLineEdit()
+        self.first_frame.setText(str(int(nuke.Root()['first_frame'].value())))
+        self.before = QtWidgets.QComboBox()
+        self.last_frame = QtWidgets.QLineEdit()
+        self.last_frame.setText(str(int(nuke.Root()['last_frame'].value())))
+        framesValidator = QtGui.QIntValidator()
+        self.first_frame.setValidator(framesValidator)
+        self.last_frame.setValidator(framesValidator)
+        self.after = QtWidgets.QComboBox()
+        frame_mode = ['hold', 'loop', 'bounce', 'black']
+        self.before.addItems(frame_mode)
+        self.after.addItems(frame_mode)
+
+        frameRangeWidget = QtWidgets.QWidget()
+        frameRangeLayout = QtWidgets.QHBoxLayout()
+        for widget in [frameRangeLabel, self.first_frame, self.before, self.last_frame, self.after]:
+            frameRangeLayout.addWidget(widget)
+        frameRangeWidget.setLayout(frameRangeLayout)
+
+        self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.buttonBox.accepted.connect(self.clickedOk)
+        self.buttonBox.rejected.connect(self.clickedCancel)
+
+        masterLayout = QtWidgets.QVBoxLayout()
+        masterSplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        masterSplitter.addWidget(nodeSelectionWidget)
+        masterSplitter.addWidget(frameRangeWidget)
+        masterLayout.addWidget(masterSplitter)
+        masterLayout.addWidget(self.buttonBox)
+        self.setLayout(masterLayout)
+        self.setWindowTitle("Set read nodes frame range")
+
+    def clickedOk(self):
+        nodeSelection = self.nodeSelection.currentText()
+        first = int(self.first_frame.text())
+        before = self.before.currentIndex()
+        last = int(self.last_frame.text())
+        after = self.after.currentIndex()
+    
+        if nodeSelection == 'All read nodes':
             Sel = allReads()
-        elif f.nodesSelection.value() == 'Selected nodes only':
+        elif nodeSelection == 'Selected nodes only':
             Sel = nuke.selectedNodes()
         else:
             Sel = allReads()
@@ -139,14 +177,25 @@ def setFrameRange():
 
         for r in Sel:
             try:
-                r['first'].setValue(f.firstFrame.value())
-                r['before'].setValue(f.before.value())
-                r['last'].setValue(f.lastFrame.value())
-                r['after'].setValue(f.after.value())
+                r['first'].setValue(first)
+                r['before'].setValue(before)
+                r['last'].setValue(last)
+                r['after'].setValue(after)
             except ValueError:
                 nuke.message('No nodes selected!')
             except NameError:
                 pass
+        self.close()
+        return True
+
+    def clickedCancel(self):
+        self.reject()
+
+def setFrameRange():
+    setFrameRange.setFrameRangePanel = setFrameRange_Panel()
+    setFrameRange.setFrameRangePanel.show()
+
+
 
 def setError():
     e = nukescripts.PythonPanel('Missing frames setting')
