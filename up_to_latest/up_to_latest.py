@@ -3,7 +3,7 @@ import re
 import nuke
 from glob import glob
 from nukescripts.version import version_get, version_set
-from PySide2 import (QtUiTools, QtWidgets, QtCore)
+from PySide2 import QtUiTools, QtWidgets, QtCore, QtGui
 
 class UpNodesToLatest(QtWidgets.QMainWindow):
     def __init__(self):
@@ -35,18 +35,27 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
         self.ui.buttonBox.rejected.connect(self.clickedCancel)
 
     def populate_table(self):
+        # populate table with all nodes and its latest version
+        # include checkbox to determine whether to skip some nodes
+        # color change on out of version nodes
         # gather nodes
         nodes = nuke.allNodes("Read")
         for node in nodes:
             # create table items
+
             # get node basename only for ease of read
+            # attach node into the widget data for fetching later
             node_file = nuke.filename(node)
             node_filename = os.path.basename(node_file)
-            filename_widget = QtWidgets.QTableWidgetItem(node_filename)
+            filename_widget = QtWidgets.QTableWidgetItem()
+            filename_widget.setText(node_filename)
+            filename_widget.setData(QtCore.Qt.UserRole, node)
+
             # get current version in nodegraph
             (prefix, v) = version_get(node_filename, 'v')
             c_version = "{}{}".format(prefix, v)
             c_version_widget = QtWidgets.QTableWidgetItem(c_version)
+
             # gather all available versions
             versions = self.detect_all_versions(node)
             versions_box = QtWidgets.QComboBox()
@@ -55,21 +64,44 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
                 versions_box.setCurrentText(versions[-1])
             else:
                 versions_box.addItem(c_version)
-            # create checkbox
-            check = QtWidgets.QTableWidgetItem()
-            check.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-            check.setCheckState(QtCore.Qt.Checked)
+
+            # create update checkbox
+            check_widget = QtWidgets.QTableWidgetItem("Update this node")
+            check_widget.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            check_widget.setCheckState(QtCore.Qt.Checked)
+
+            # create some action buttons
+            focus_button = QtWidgets.QPushButton("Focus")
+            openf_button = QtWidgets.QPushButton("Open Folder")
+            focus_button.clicked.connect(self.focus_on_node)
+            openf_button.clicked.connect(self.open_node_folder)
+            actions_layout = QtWidgets.QHBoxLayout()
+            for widget in [focus_button, openf_button]:
+                widget.setSizePolicy(   QtWidgets.QSizePolicy.Expanding,
+                                        QtWidgets.QSizePolicy.Expanding)
+                widget.setMinimumSize(20, 20)
+                actions_layout.addWidget(widget)
+            actions_widget = QtWidgets.QWidget()
+            actions_widget.setLayout(actions_layout)
+
+            # change row color if version outdated
+            if versions_box.currentText() != c_version:
+                for item in [filename_widget, c_version_widget, check_widget]:
+                    item.setForeground(QtCore.Qt.red)
+
             # add all to table
             # versions_box is a widget so use setCellWidget
             num_rows = self.table.rowCount()
             self.table.insertRow        (num_rows)
-            self.table.setItem          (num_rows, 0, filename_widget)
-            self.table.setItem          (num_rows, 1, c_version_widget)
-            self.table.setCellWidget    (num_rows, 2, versions_box)
-            self.table.setItem          (num_rows, 3, check)
+            filename =  self.table.setItem          (num_rows, 0, filename_widget)
+            current =   self.table.setItem          (num_rows, 1, c_version_widget)
+            latest =    self.table.setCellWidget    (num_rows, 2, versions_box)
+            tickbox =   self.table.setItem          (num_rows, 3, check_widget)
+            actions =   self.table.setCellWidget    (num_rows, 4, actions_widget)
+
+
         # auto stretch and resize
-        # working together seem to break one or another at the moment
-        self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        # self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.table.resizeColumnsToContents()
 
     def detect_all_versions(self, node):
@@ -103,15 +135,39 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
                 if find_version[0] not in versions:
                     versions.append(find_version[0])
         return versions
-
+    
     def up_selected_nodes(self):
+        # set version if upversion checkbox is check
         up_nodes = []
         for row in range(self.table.rowCount()):
             checkbox = self.table.item(row, self.table.columnCount()-1)
             checkstate = checkbox.checkState()
             if checkstate:
-                up_nodes.append(self.table.item(row, 0).text())
-        print(up_nodes)
+                node =      self.table.item(row, 0).data(QtCore.Qt.UserRole)
+                current =   self.table.item(row, 1).text()[1:]
+                set_to =    self.table.cellWidget(row, 2).currentText()[1:]
+                node_data = {"node": node,
+                             "current": current,
+                             "set_to": set_to
+                            }
+                up_nodes.append(node_data)
+        for data in up_nodes:
+            print(data)
+            node = data['node']
+            current = data['current']
+            set_to = data['set_to']
+            orig_file = node['file'].value()
+            new_file = version_set(orig_file, "v", int(current), int(set_to))
+            node['file'].setValue(new_file)
+
+    def focus_on_node(self):
+        sender = self.sender()
+        nuke.zoomToFitSelected()
+        print(sender)
+
+    def open_node_folder(self):
+        sender = self.sender()
+        print(sender)
 
     def clickedOk(self):
         self.up_selected_nodes()
@@ -125,4 +181,4 @@ def UpNodesVersions():
     UpNodesVersions.UpVersionsPanel = UpNodesToLatest()
     UpNodesVersions.UpVersionsPanel.show()
 
-    UpNodesVersions()
+UpNodesVersions()

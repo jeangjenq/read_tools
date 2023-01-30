@@ -16,6 +16,9 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QTableWidget" name="nodes_table">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
      <property name="sizeAdjustPolicy">
       <enum>QAbstractScrollArea::AdjustIgnored</enum>
      </property>
@@ -26,7 +29,7 @@
       <bool>false</bool>
      </attribute>
      <attribute name="horizontalHeaderStretchLastSection">
-      <bool>false</bool>
+      <bool>true</bool>
      </attribute>
      <attribute name="verticalHeaderCascadingSectionResizes">
       <bool>false</bool>
@@ -39,22 +42,27 @@
      </attribute>
      <column>
       <property name="text">
-       <string>file</string>
+       <string>File</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>current</string>
+       <string>Current</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>latest</string>
+       <string>Latest</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>upversion</string>
+       <string>Update</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Actions</string>
       </property>
      </column>
     </widget>
