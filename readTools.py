@@ -21,20 +21,14 @@ else:
     from PySide2 import QtGui, QtCore, QtWidgets
 
 
-def allReads():
-    readNodes = []
-    for i in nuke.allNodes():
-        if i.Class() == 'Read':
-            readNodes.append(i)
-    return readNodes
-
-
 def selectRead():
-    for i in allReads():
+    # simply select all read nodes
+    for i in nuke.allNodes('Read'):
         i.knob('selected').setValue('True')
 
 
 class setLocalize_panel(QtWidgets.QDialog):
+    # PySide2 panel to set localization policy on all nodes
     def __init__(self, parent=None):
         super(setLocalize_panel, self).__init__(parent)
 
@@ -100,6 +94,7 @@ class setLocalize_panel(QtWidgets.QDialog):
         self.close()
 
 def setLocalize():
+    # summon localization popup
     setLocalize.setLocalizePanel = setLocalize_panel()
     setLocalize.setLocalizePanel.show()
 
@@ -160,11 +155,11 @@ class setFrameRange_Panel(QtWidgets.QDialog):
         after = self.after.currentIndex()
     
         if nodeSelection == 'All read nodes':
-            Sel = allReads()
+            Sel = nuke.allNodes('Read')
         elif nodeSelection == 'Selected nodes only':
             Sel = nuke.selectedNodes()
         else:
-            Sel = allReads()
+            Sel = nuke.allNodes('Read')
             for i in nuke.selectedNodes():
                 try:
                     Sel.remove(i)
@@ -227,11 +222,11 @@ class setError_Panel(QtWidgets.QDialog):
         reloadCheck = self.reloadCheck.isChecked()
 
         if nodeSelection == 'All read nodes':
-            Sel = allReads()
+            Sel = nuke.allNodes('Read')
         elif nodeSelection == 'Selected nodes only':
             Sel = nuke.selectedNodes()
         else:
-            Sel = allReads()
+            Sel = nuke.allNodes('Read')
             for i in nuke.selectedNodes():
                 try:
                     Sel.remove(i)
