@@ -57,12 +57,12 @@
      </column>
      <column>
       <property name="text">
-       <string>Update</string>
+       <string>Actions</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>Actions</string>
+       <string>Update</string>
       </property>
      </column>
     </widget>
