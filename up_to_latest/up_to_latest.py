@@ -192,10 +192,6 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
         nuke.zoom(1, [node.xpos(), node.ypos()])
         # nuke.zoomToFitSelected()
 
-    def open_node_folder(self):
-        sender = self.sender()
-        print(sender)
-
     def resize_table_to_contents(self):
         vh = self.table.verticalHeader()
         hh = self.table.horizontalHeader()
@@ -215,9 +211,5 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
 def UpNodesVersions():
     UpNodesVersions.UpVersionsPanel = UpNodesToLatest()
     UpNodesVersions.UpVersionsPanel.show()
-
-def createPanel():
-    pane = nuke.getPaneFor("example.test.panel")
-    panels.registerWidgetAsPanel('UpNodesToLatest', 'UpNodesToLatest',"example.test.panel", True).addToPane(pane)
 
 UpNodesVersions()
