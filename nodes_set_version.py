@@ -210,6 +210,7 @@ class NodesSetVersion(QtWidgets.QMainWindow):
             orig_file = node['file'].value()
             new_file = version_set(orig_file, "v", int(current), int(set_to))
             node['file'].setValue(new_file)
+            node['reload'].execute()
 
     def focus_on_node(self, node):
         '''
