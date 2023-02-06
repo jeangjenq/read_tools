@@ -158,7 +158,7 @@ class NodesSetVersion(QtWidgets.QMainWindow):
         not my prefer method
         '''
         versions = []
-        file = nuke.filename(node)
+        file = nuke.filename(node).replace('\\', '/')
         # regex patterns to replace versions and frame paddings to *
         # we will use glob later to search for all files
         frame_paddings = [r"%\d+[dD]", r"\#+"]
