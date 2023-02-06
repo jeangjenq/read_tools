@@ -3,13 +3,13 @@ import re
 from glob import glob
 path = r'/home/jeangjenq/repository/read_up_version/media/checker_v001/checker_v001.%04d.exr'
 
-versions_pattern = r"(?P<version>[vV])(-?\d+)"
+versions_pattern = r"(?P<symbol>[\._\\/])(?P<prefix>[vV])(?P<num>-?\d+)"
 frame_paddings = [r"%\d+[dD]", r"\#+"]
 
-path = re.sub(versions_pattern, "\g<version>*", path)
+path = re.sub(versions_pattern, "\g<symbol>\g<prefix>[0-9]*", path)
 
 for frame in frame_paddings:
-    path = re.sub(frame, "\g<version>*", path)
+    path = re.sub(frame, "[0-9]*", path)
 
 def all_same(items):
     return all(x == items[0] for x in items)
