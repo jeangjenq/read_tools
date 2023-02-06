@@ -7,6 +7,9 @@ from glob import glob
 from nukescripts.version import version_get, version_set
 from PySide2 import QtUiTools, QtWidgets, QtCore, QtGui
 
+# version regex patterns here
+versions_pattern = r"(?P<symbol>[\._\\/])(?P<prefix>[vV])(?P<num>-?\d+)"
+
 def open_folder(path):
     '''
     open folder from arg
@@ -22,34 +25,39 @@ def open_folder(path):
     else:
         nuke.message("Unsupported OS")
 
-class UpNodesToLatest(QtWidgets.QMainWindow):
+class NodesSetVersion(QtWidgets.QMainWindow):
+    '''
+    Display a table with all the nodes
+    Shows its current and available versions
+    Actions column to focus/open folder of node
+    '''
     def __init__(self):
-        super(UpNodesToLatest, self).__init__()
+        super(NodesSetVersion, self).__init__()
         self.load_ui()
         self.populate_table()
-        self.connect_ui()
-        # self.setMinimumSize(self.table.sizeHint())
         self.resize_table_to_contents()
 
     def load_ui(self):
+        '''
+        Load .ui file created with QtDesigner
+        Connect buttonbox functions
+        '''
         loader = QtUiTools.QUiLoader()
-        # ui_path = os.path.join(os.path.dirname(__file__), "form.ui")
-        ui_path = "/home/jeangjenq/repository/read_tools/up_to_latest/form.ui"
+        ui_path = os.path.join(os.path.dirname(__file__), "form.ui")
+        # ui_path = "/home/jeangjenq/repository/read_tools/up_to_latest/form.ui"
         ui_file = QtCore.QFile(ui_path)
         ui_file.open(QtCore.QFile.ReadOnly)
         self.ui = loader.load(ui_file)
         ui_file.close()
         self.table = self.ui.nodes_table
+        self.ui.buttonBox.accepted.connect(self.clickedOk)
+        self.ui.buttonBox.rejected.connect(self.clickedCancel)
         
         # set window to use loaded ui file as central widget
         self.setCentralWidget(self.ui)
         self.setWindowTitle("Versions")
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-
-    def connect_ui(self):
-        self.ui.buttonBox.accepted.connect(self.clickedOk)
-        self.ui.buttonBox.rejected.connect(self.clickedCancel)
-
+    
     def populate_table(self):
         '''
         populate table with all nodes and its latest version
@@ -58,72 +66,87 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
         gather nodes
         '''
         nodes = nuke.allNodes("Read")
+
         for node in nodes:
             # create table items
 
             # get node basename only for ease of read
-            # attach node into the widget data for fetching later
-            node_file = nuke.filename(node)
-            node_filename = os.path.basename(node_file)
-            filename_widget = QtWidgets.QTableWidgetItem()
-            filename_widget.setText(node_filename)
-            filename_widget.setData(QtCore.Qt.UserRole, node)
-
             # get current version in nodegraph
-            (prefix, v) = version_get(node_filename, 'v')
-            c_version = "{}{}".format(prefix, v)
-            c_version_widget = QtWidgets.QTableWidgetItem(c_version)
+            node_file = nuke.filename(node).replace('\\', '/')
+            node_filename = os.path.basename(node_file)
 
-            # gather all available versions
-            versions = self.detect_all_versions(node)
-            versions_box = QtWidgets.QComboBox()
-            if versions:
-                versions_box.addItems(versions)
-                versions_box.setCurrentText(versions[-1])
-            else:
-                versions_box.addItem(c_version)
+            # version_get returns ValueError when it can't detect version
+            # skip node if version_get errors
+            try:
+                (prefix, v) = version_get(node_filename, 'v')
 
-            # create update checkbox
-            check_widget = QtWidgets.QTableWidgetItem()
-            check_widget.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-            check_widget.setCheckState(QtCore.Qt.Checked)
+                # attach node into the widget data for fetching later
+                filename_widget = QtWidgets.QTableWidgetItem()
+                filename_widget.setText(node_filename)
+                filename_widget.setData(QtCore.Qt.UserRole, node)
 
-            # create some action buttons
-            focus_button = QtWidgets.QPushButton("Focus")
-            openf_button = QtWidgets.QPushButton("Open Folder")
-            # connect action buttons
-            focus_button.clicked.connect(lambda *args,
-                                                 node=node:
-                                                 self.focus_on_node(node))
-            openf_button.clicked.connect(lambda *args,
-                                                 path = os.path.dirname(node_file):
-                                                 open_folder(path))
-            actions_layout = QtWidgets.QHBoxLayout()
-            for widget in [focus_button, openf_button]:
-                widget.setSizePolicy(   QtWidgets.QSizePolicy.Expanding,
-                                        QtWidgets.QSizePolicy.Expanding)
-                widget.setMinimumSize(20, 16)
-                actions_layout.addWidget(widget)
-            actions_widget = QtWidgets.QWidget()
-            actions_widget.setLayout(actions_layout)
+                # show current detected version
+                c_version = "{}{}".format(prefix, v)
+                c_version_widget = QtWidgets.QTableWidgetItem(c_version)
 
-            # change row color if version outdated
-            if versions_box.currentText() != c_version:
-                for item in [filename_widget, c_version_widget, check_widget]:
-                    item.setForeground(QtCore.Qt.yellow)
+                # gather all available versions
+                # using version[-1] trusting the last in list is latest version
+                versions = self.detect_all_versions(node)
+                versions_box = QtWidgets.QComboBox()
+                if versions:
+                    versions_box.addItems(versions)
+                    versions_box.setCurrentText(versions[-1])
+                else:
+                    versions_box.addItem(c_version)
 
-            # add all to table
-            # versions_box is a widget so use setCellWidget
-            num_rows = self.table.rowCount()
-            self.table.insertRow        (num_rows)
-            filename =  self.table.setItem          (num_rows, 0, filename_widget)
-            current =   self.table.setItem          (num_rows, 1, c_version_widget)
-            latest =    self.table.setCellWidget    (num_rows, 2, versions_box)
-            actions =   self.table.setCellWidget    (num_rows, 3, actions_widget)
-            tickbox =   self.table.setItem          (num_rows, 4, check_widget)
+                # create update checkbox
+                check_widget = QtWidgets.QTableWidgetItem()
+                check_widget.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                check_widget.setCheckState(QtCore.Qt.Checked)
 
-        # auto stretch and resize
-        # self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+                # create some action buttons
+                focus_button = QtWidgets.QPushButton("Focus")
+                openf_button = QtWidgets.QPushButton("Open Folder")
+                # connect action buttons
+                focus_button.clicked.connect(lambda *args,
+                                                    node=node:
+                                                    self.focus_on_node(node))
+                openf_button.clicked.connect(lambda *args,
+                                                    path = os.path.dirname(node_file):
+                                                    open_folder(path))
+                # I want two buttons in a single column
+                # using QWidget with a HBoxLayout to achieve this
+                actions_layout = QtWidgets.QHBoxLayout()
+                for widget in [focus_button, openf_button]:
+                    # buttons in a widget in a cell seems to have hidden border
+                    # without policy and minimum size buttons are too small
+                    widget.setSizePolicy(   QtWidgets.QSizePolicy.Expanding,
+                                            QtWidgets.QSizePolicy.Expanding)
+                    widget.setMinimumSize(20, 14)
+                    actions_layout.addWidget(widget)
+                actions_widget = QtWidgets.QWidget()
+                actions_widget.setLayout(actions_layout)
+
+                # change row color if version outdated
+                if versions_box.currentText() != c_version:
+                    for item in [filename_widget, c_version_widget, check_widget]:
+                        item.setForeground(QtCore.Qt.yellow)
+
+                # add all to table
+                # versions_box is a widget so use setCellWidget
+                num_rows = self.table.rowCount()
+                self.table.insertRow      (num_rows)
+                self.table.setItem        (num_rows, 0, filename_widget)
+                self.table.setItem        (num_rows, 1, c_version_widget)
+                self.table.setCellWidget  (num_rows, 2, versions_box)
+                self.table.setCellWidget  (num_rows, 3, actions_widget)
+                self.table.setItem        (num_rows, 4, check_widget)
+
+            except ValueError:
+                print("""Can not detect version in {}, skipping {}
+                      """.format(node_filename, node['name'].value()))
+
+        # auto resize
         self.table.resizeColumnsToContents()
 
     def detect_all_versions(self, node):
@@ -138,31 +161,32 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
         file = nuke.filename(node)
         # regex patterns to replace versions and frame paddings to *
         # we will use glob later to search for all files
-        versions_pattern = r"v-?\d+"
         frame_paddings = [r"%\d+[dD]", r"\#+"]
 
-        file = re.sub(versions_pattern, "v*", file)
+        file = re.sub(versions_pattern, "\g<symbol>\g<prefix>[0-9]*", file)
         for pattern in frame_paddings:
             file = re.sub(pattern, "[0-9]*", file)
+        # example of file at this point
+        #  /media/checker_v[0-9]*/checker_v[0-9]*.[0-9]*.exr
         
-        # make sure all v### found in files are the same number
-        # don't know under what occasion you might have 2 different versions
-        # in same file path, don't know what to do about it
-        def all_same(items):
-            return all(x == items[0] for x in items)
-        # glob returns list of files that matches the pattern
+        # glob  will returns list of files that matches the pattern
         # in this case probably all the individual frames
         files = glob(file)
         versions = []
         for file in files:
-            find_version = re.findall(versions_pattern, file)
-            if find_version and all_same(find_version):
-                if find_version[0] not in versions:
-                    versions.append(find_version[0])
+            find_version = re.search(versions_pattern, file)
+            if find_version:
+                version = find_version.group('prefix') + find_version.group('num')
+                if version not in versions:
+                    versions.append(version)
         return versions
     
     def up_selected_nodes(self):
-        # set version if uresize_table_to_contentspversion checkbox is check
+        '''
+        set version if checkbox is check
+        gather a list of dictionary
+        containing node, current version and wanted version
+        '''
         up_nodes = []
         for row in range(self.table.rowCount()):
             checkbox = self.table.item(row, self.table.columnCount()-1)
@@ -177,6 +201,8 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
                             }
                 up_nodes.append(node_data)
         for data in up_nodes:
+            # using nukescripts.version.version_set to change version here
+            # the function requires version as an int
             print(data)
             node = data['node']
             current = data['current']
@@ -189,7 +215,7 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
         '''
         focus on node, expect node in argument
         '''
-        nuke.zoom(1, [node.xpos(), node.ypos()])
+        nuke.zoom(2, [node.xpos(), node.ypos()])
         # nuke.zoomToFitSelected()
 
     def resize_table_to_contents(self):
@@ -208,8 +234,6 @@ class UpNodesToLatest(QtWidgets.QMainWindow):
         self.close()
     
 
-def UpNodesVersions():
-    UpNodesVersions.UpVersionsPanel = UpNodesToLatest()
-    UpNodesVersions.UpVersionsPanel.show()
-
-UpNodesVersions()
+def NodesVersions():
+    NodesVersions.Panel = NodesSetVersion()
+    NodesVersions.Panel.show()
