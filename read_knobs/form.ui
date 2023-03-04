@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>563</width>
+    <height>577</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="selection_grp">
+     <property name="title">
+      <string/>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <widget class="QLabel" name="policy_label">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>90</y>
+        <width>123</width>
+        <height>36</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>policy</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="read_nodes_only">
+      <property name="geometry">
+       <rect>
+        <x>159</x>
+        <y>60</y>
+        <width>179</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Read nodes only</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QLabel" name="selection_label">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>18</y>
+        <width>123</width>
+        <height>36</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Nodes Selection</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="reload_nodes">
+      <property name="geometry">
+       <rect>
+        <x>159</x>
+        <y>132</y>
+        <width>179</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Reload updated nodes</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="policy">
+      <property name="geometry">
+       <rect>
+        <x>159</x>
+        <y>90</y>
+        <width>179</width>
+        <height>36</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="nodes_selection">
+      <property name="geometry">
+       <rect>
+        <x>159</x>
+        <y>18</y>
+        <width>179</width>
+        <height>36</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="framerange_grp">
+     <property name="title">
+      <string/>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="framerange_label">
+        <property name="text">
+         <string>Frame Range</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="first"/>
+      </item>
+      <item>
+       <widget class="QComboBox" name="before"/>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="last"/>
+      </item>
+      <item>
+       <widget class="QComboBox" name="after"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>Dialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>Dialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
