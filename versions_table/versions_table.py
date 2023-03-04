@@ -43,7 +43,7 @@ class NodesSetVersion(QtWidgets.QMainWindow):
         Connect buttonbox functions
         '''
         loader = QtUiTools.QUiLoader()
-        ui_path = os.path.join(os.path.dirname(__file__), "versions_table.ui")
+        ui_path = os.path.join(os.path.dirname(__file__), "form.ui")
         # ui_path = "/home/jeangjenq/repository/read_tools/up_to_latest/form.ui"
         ui_file = QtCore.QFile(ui_path)
         ui_file.open(QtCore.QFile.ReadOnly)

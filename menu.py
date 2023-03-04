@@ -1,4 +1,7 @@
 import readTools
+
+# load versions table
+nuke.pluginAddPath("./versions_table")
 import nodes_set_version
 
 #Create toolbar with icon
@@ -11,5 +14,5 @@ read_tools_menu.addCommand('Set nodes localization', 'readTools.setLocalize()')
 read_tools_menu.addCommand('Set read nodes frame range', 'readTools.setFrameRange()')
 read_tools_menu.addCommand('Missing frames setting', 'readTools.setError()')
 read_tools_menu.addCommand('Reload selected reads', 'readTools.refreshReads()')
-read_tools_menu.addCommand('Nodes version', 'nodes_set_version.NodesVersions()')
+read_tools_menu.addCommand('Nodes version', 'versions_table.NodesVersions()')
 read_tools_menu.addCommand('Delete Files', 'readTools.deleteFiles()')
