@@ -102,6 +102,13 @@ class ReadKnobs(QtWidgets.QMainWindow):
         '''
         super(ReadKnobs, self).__init__(parent)
 
+        # determine what function is called
+        # need to write this
+        
+    def collect_nodes(self):
+        self.nodes = nuke.selectedNodes()
+
+
 
 class setLocalize_panel(QtWidgets.QMainWindow):
     # PySide2 panel to set localization policy on all nodes
