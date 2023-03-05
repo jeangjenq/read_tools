@@ -17,22 +17,36 @@ import os
 import re
 if nuke.NUKE_VERSION_MAJOR < 11:
     from PySide import QtCore, QtGui, QtGui as QtWidgets
+    from PySide import QtUiTools
 else:
-    from PySide2 import QtGui, QtCore, QtWidgets
+    from PySide2 import QtGui, QtCore, QtWidgets, QtUiTools
 
 
 def selectRead():
-    # simply select all read nodes
-    for i in nuke.allNodes('Read'):
-        i.knob('selected').setValue('True')
+    '''
+    deselect any selected nodes
+    select all reads
+    '''
+    for n in nuke.allNodes():
+        n['selected'].setValue('False')
+    for n in nuke.allNodes('Read'):
+        n.['selected'].setValue('True')
 
 
 def refreshReads():
+    '''
+    refresh selected nodes
+    '''
     for node in nuke.selectedNodes():
-        node['reload'].execute()
+        if node['reload']:
+            node['reload'].execute()
 
 
 def deleteFiles():
+    '''
+    delete node's files
+    popup dialog to confirm
+    '''
     #gather a list of all selected read nodes and filter out non-read nodes
     all = nuke.selectedNodes()
     for node in all:
@@ -42,7 +56,7 @@ def deleteFiles():
 
     #get a list of files to be deleted
     for n in all:
-        #get file path while repalcing the hashes with %0#d
+        #get file path while replacing the hashes with %0#d
         path = nukescripts.replaceHashes(nuke.filename(n))
         padd = re.search(r'%.*d', path)
         framerange = range(n['first'].value(), n['last'].value() + 1)
@@ -72,7 +86,24 @@ def deleteFiles():
             pass
 
 
-class setLocalize_panel(QtWidgets.QDialog):
+class ReadKnobs(QtWidgets.QMainWindow):
+    '''
+    read ui file for modifying read knobs
+    adjust ui according to user selection:
+    1. localization policy
+    2. frame range
+    3. missing frames policy
+    '''
+    def __init__(self, knob_select, parent=None):
+        '''
+        set up an intvalidator as it will be used often
+        change policy label and combobox
+        populate comboboxes according to knob
+        '''
+        super(ReadKnobs, self).__init__(parent)
+
+
+class setLocalize_panel(QtWidgets.QMainWindow):
     # PySide2 panel to set localization policy on all nodes
     def __init__(self, parent=None):
         super(setLocalize_panel, self).__init__(parent)
