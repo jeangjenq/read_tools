@@ -27,6 +27,51 @@ def selectRead():
         i.knob('selected').setValue('True')
 
 
+def refreshReads():
+    for node in nuke.selectedNodes():
+        node['reload'].execute()
+
+
+def deleteFiles():
+    #gather a list of all selected read nodes and filter out non-read nodes
+    all = nuke.selectedNodes()
+    for node in all:
+        if not node.Class() == 'Read':
+            all.remove(node)
+    files = []
+
+    #get a list of files to be deleted
+    for n in all:
+        #get file path while repalcing the hashes with %0#d
+        path = nukescripts.replaceHashes(nuke.filename(n))
+        padd = re.search(r'%.*d', path)
+        framerange = range(n['first'].value(), n['last'].value() + 1)
+        for index in framerange:
+            if padd:
+                fra = (padd.group(0)) % index
+                name = str(re.sub(r'%.*d', str(fra), path))
+            elif not padd:
+                name = path
+            if name not in files:
+                files.append(name)
+
+    #list of node names about to be deleted
+    nodesToDelete = []
+    for na in all:
+        nodesToDelete.append(na['name'].value())
+
+    #Confirm files deletion
+    if nodesToDelete:
+        if nuke.ask('About to delete files from: ' + '\n' + str(nodesToDelete) + '\n' + "Confirm?"):
+            for e in files:
+                try:
+                    os.remove(e)
+                except:
+                    pass
+        else:
+            pass
+
+
 class setLocalize_panel(QtWidgets.QDialog):
     # PySide2 panel to set localization policy on all nodes
     def __init__(self, parent=None):
@@ -253,48 +298,3 @@ class setError_Panel(QtWidgets.QDialog):
 def setError():
     setError.setErrorPanel = setError_Panel()
     setError.setErrorPanel.show()
-
-
-def refreshReads():
-    for node in nuke.selectedNodes():
-        node['reload'].execute()
-
-
-def deleteFiles():
-    #gather a list of all selected read nodes and filter out non-read nodes
-    all = nuke.selectedNodes()
-    for node in all:
-        if not node.Class() == 'Read':
-            all.remove(node)
-    files = []
-
-    #get a list of files to be deleted
-    for n in all:
-        #get file path while repalcing the hashes with %0#d
-        path = nukescripts.replaceHashes(nuke.filename(n))
-        padd = re.search(r'%.*d', path)
-        framerange = range(n['first'].value(), n['last'].value() + 1)
-        for index in framerange:
-            if padd:
-                fra = (padd.group(0)) % index
-                name = str(re.sub(r'%.*d', str(fra), path))
-            elif not padd:
-                name = path
-            if name not in files:
-                files.append(name)
-
-    #list of node names about to be deleted
-    nodesToDelete = []
-    for na in all:
-        nodesToDelete.append(na['name'].value())
-
-    #Confirm files deletion
-    if nodesToDelete:
-        if nuke.ask('About to delete files from: ' + '\n' + str(nodesToDelete) + '\n' + "Confirm?"):
-            for e in files:
-                try:
-                    os.remove(e)
-                except:
-                    pass
-        else:
-            pass
