@@ -99,6 +99,21 @@
         <height>36</height>
        </rect>
       </property>
+      <item>
+       <property name="text">
+        <string>All nodes</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Selected nodes</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Exclude selected</string>
+       </property>
+      </item>
      </widget>
     </widget>
    </item>
