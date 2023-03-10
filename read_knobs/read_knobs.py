@@ -101,12 +101,23 @@ class ReadKnobs(QtWidgets.QMainWindow):
         populate comboboxes according to knob
         '''
         super(ReadKnobs, self).__init__(parent)
+        self.load_ui()
 
         # determine what function is called
         # need to write this
         
+    def load_ui(self):
+        loader = QtUiTools.loader()
+        ui_path = os.path.join( os.path.dirname(__file__), "form.ui")
+        ui_file = QtCore.QFile(ui_path)
+        ui_file.open(QtCore.QFile.ReadOnly)
+        self.ui = loader.load(ui_file)
+        ui_file.close()
+
     def collect_nodes(self):
         self.nodes = nuke.selectedNodes()
+        selection = self.ui.nodes_selection.currentIndex()
+            
 
 
 
