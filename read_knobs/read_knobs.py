@@ -115,10 +115,32 @@ class ReadKnobs(QtWidgets.QMainWindow):
         ui_file.close()
 
     def collect_nodes(self):
-        self.nodes = nuke.selectedNodes()
+        self.nodes = []
         selection = self.ui.nodes_selection.currentIndex()
-            
-
+        read_nodes_only = self.ui.read_nodes_only.isChecked()
+        if selection == 1:
+            self.nodes = nuke.allNodes()
+        elif selection == 2:
+            self.nodes = nuke.selectedNodes()
+        else:
+            self.nodes = nuke.allNodes()
+            for node in nuke.selectedNodes():
+                self.nodes.remove(node)
+        if read_nodes_only:
+            for node in self.nodes:
+                if not node.Class() == "Read":
+                    self.nodes.remove(node)
+    
+    def populate_policy(self, knob_select):
+        find_read = nuke.allNodes("Read")
+        if not find_read:
+            a_read = nuke.nodes.Read()
+        else:
+            a_read = find_read[0]
+        
+        policies = []
+        if knob_select == "localization"
+            policies = a_read['localizationPolicy'].values()
 
 
 class setLocalize_panel(QtWidgets.QMainWindow):
