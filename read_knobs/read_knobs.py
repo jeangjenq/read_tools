@@ -30,7 +30,7 @@ def selectRead():
     for n in nuke.allNodes():
         n['selected'].setValue('False')
     for n in nuke.allNodes('Read'):
-        n.['selected'].setValue('True')
+        n['selected'].setValue('True')
 
 
 def refreshReads():
